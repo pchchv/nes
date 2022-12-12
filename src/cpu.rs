@@ -25,6 +25,11 @@ impl CPU {
         self.update_zero_and_negative_flags(self.register_x);
     }
 
+    fn inx(&mut self) {
+        self.register_x = self.register_x.wrapping_add(1);
+        self.update_zero_and_negative_flags(self.register_x);
+    }
+
     fn update_zero_and_negative_flags(&mut self, result: u8) {
         if result == 0 {
             self.status = self.status | 0b0000_0010;
@@ -53,12 +58,9 @@ impl CPU {
 
                     self.lda(param);
                 }
-                0x00 => {
-                    return;
-                }
-                0xAA => {
-                    self.tax();
-                }
+                0xAA => self.tax(),
+                0xe8 => self.inx(),
+                0x00 => return,
                 _ => todo!(),
             }
         }
