@@ -56,12 +56,21 @@ impl CPU {
 
     pub fn load_and_run(&mut self, program: Vec<u8>) {
         self.load(program);
+        self.reset();
         self.run()
+    }
+
+    pub fn reset(&mut self) {
+        self.register_a = 0;
+        self.register_x = 0;
+        self.status = 0;
+
+        self.program_counter = self.mem_read_u16(0xFFFC);
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
         self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.program_counter = 0x8000;
+        self.mem_write_u16(0xFFFC, 0x8000);
     }
 
     fn mem_read_u16(&mut self, pos: u16) -> u16 {
