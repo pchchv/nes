@@ -1,6 +1,10 @@
 pub mod cpu;
 pub mod opcodes;
 
+#[macro_use]
+extern crate lazy_static;
+extern crate sdl2;
+
 use cpu::Mem;
 use cpu::CPU;
 use rand::Rng;
@@ -8,9 +12,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::EventPump;
-
-#[macro_use]
-extern crate lazy_static;
+use std::time::Duration;
 
 fn color(byte: u8) -> Color {
     match byte {
@@ -146,6 +148,6 @@ fn main() {
             canvas.present();
         }
 
-        ::std::thread::sleep(std::time::Duration::new(0, 70_000))
+        ::std::thread::sleep(Duration::new(0, 70_000))
     });
 }
