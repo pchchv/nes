@@ -3,6 +3,7 @@ pub mod opcodes;
 
 use cpu::Mem;
 use cpu::CPU;
+use rand::Rng;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
@@ -122,4 +123,29 @@ fn main() {
         0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10, 0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10,
         0x60, 0xa6, 0xff, 0xea, 0xea, 0xca, 0xd0, 0xfb, 0x60,
     ];
+
+    // load the game
+    let mut cpu = CPU::new();
+    cpu.load(game_code);
+    cpu.reset();
+
+    let mut screen_state = [0 as u8; 32 * 3 * 32];
+    let mut rng = rand::thread_rng();
+
+    // run the game cycle
+    cpu.run_with_callback(move |cpu| {
+        handle_user_input(cpu, &mut event_pump);
+
+        cpu.mem_write(0xfe, rng.gen_range(1..16));
+
+        if read_screen_state(cpu, &mut screen_state) {
+            texture.update(None, &screen_state, 32 * 3).unwrap();
+
+            canvas.copy(&texture, None, None).unwrap();
+
+            canvas.present();
+        }
+
+        ::std::thread::sleep(std::time::Duration::new(0, 70_000))
+    });
 }
