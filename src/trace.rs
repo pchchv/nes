@@ -2,11 +2,11 @@ use crate::cpu::{AddressingMode, Mem, CPU};
 use crate::opcodes;
 use std::collections::HashMap;
 
-pub fn trace(cpu: &CPU) -> String {
-    let ref opcodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::OPCODES_MAP;
+pub fn trace(cpu: &mut CPU) -> String {
+    let ref opscodes: HashMap<u8, &'static opcodes::OpCode> = *opcodes::OPCODES_MAP;
 
     let code = cpu.mem_read(cpu.program_counter);
-    let ops = opcodes.get(&code).unwrap();
+    let ops = opscodes.get(&code).unwrap();
 
     let begin = cpu.program_counter;
     let mut hex_dump = vec![];
