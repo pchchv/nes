@@ -8,6 +8,7 @@ pub mod trace;
 extern crate lazy_static;
 
 use bus::Bus;
+use cartridge::Rom;
 use cpu::Mem;
 use cpu::CPU;
 // use rand::Rng;
@@ -107,7 +108,10 @@ fn main() {
         .unwrap();
 
     // load the game
-    let bus = Bus::new();
+    let bytes: Vec<u8> = std::fs::read("nestest.nes").unwrap();
+    let rom = Rom::new(&bytes).unwrap();
+
+    let bus = Bus::new(rom);
     let mut cpu = CPU::new(bus);
     cpu.reset();
     cpu.program_counter = 0xC000;
