@@ -1,6 +1,7 @@
 pub mod bus;
 pub mod cpu;
 pub mod opcodes;
+pub mod trace;
 
 #[macro_use]
 extern crate lazy_static;
@@ -8,12 +9,13 @@ extern crate lazy_static;
 use bus::Bus;
 use cpu::Mem;
 use cpu::CPU;
-use rand::Rng;
+// use rand::Rng;
+use crate::trace::trace;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color, PixelFormatEnum};
 use sdl2::EventPump;
-use std::time::Duration;
+// use std::time::Duration;
 
 fn color(byte: u8) -> Color {
     match byte {
@@ -114,6 +116,7 @@ fn main() {
 
     // run the game cycle
     cpu.run_with_callback(move |cpu| {
+        println!("{}", trace(cpu));
         // handle_user_input(cpu, &mut event_pump);
 
         // cpu.mem_write(0xfe, rng.gen_range(1..16));
