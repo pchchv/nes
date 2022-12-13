@@ -1,3 +1,4 @@
+use crate::bus::Bus;
 use crate::opcodes;
 use bitflags::bitflags;
 use std::collections::HashMap;
@@ -37,7 +38,7 @@ pub struct CPU {
     pub status: CpuFlags,
     pub program_counter: u16,
     pub stack_pointer: u8,
-    memory: [u8; 0xFFFF],
+    pub bus: Bus,
 }
 
 #[derive(Debug)]
@@ -63,12 +64,14 @@ pub trait Mem {
     fn mem_read_u16(&self, pos: u16) -> u16 {
         let lo = self.mem_read(pos) as u16;
         let hi = self.mem_read(pos + 1) as u16;
+
         (hi << 8) | (lo as u16)
     }
 
     fn mem_write_u16(&mut self, pos: u16, data: u16) {
         let hi = (data >> 8) as u8;
         let lo = (data & 0xff) as u8;
+
         self.mem_write(pos, lo);
         self.mem_write(pos + 1, hi);
     }
@@ -76,16 +79,24 @@ pub trait Mem {
 
 impl Mem for CPU {
     fn mem_read(&self, addr: u16) -> u8 {
-        self.memory[addr as usize]
+        self.bus.mem_read(addr)
     }
 
     fn mem_write(&mut self, addr: u16, data: u8) {
-        self.memory[addr as usize] = data;
+        self.bus.mem_write(addr, data)
+    }
+
+    fn mem_read_u16(&self, pos: u16) -> u16 {
+        self.bus.mem_read_u16(pos)
+    }
+
+    fn mem_write_u16(&mut self, pos: u16, data: u16) {
+        self.bus.mem_write_u16(pos, data)
     }
 }
 
 impl CPU {
-    pub fn new() -> Self {
+    pub fn new(bus: Bus) -> Self {
         CPU {
             register_a: 0,
             register_x: 0,
@@ -93,7 +104,7 @@ impl CPU {
             status: CpuFlags::from_bits_truncate(0b100100),
             program_counter: 0,
             stack_pointer: STACK_RESET,
-            memory: [0; 0xFFFF],
+            bus: bus,
         }
     }
 
@@ -248,6 +259,14 @@ impl CPU {
         }
     }
 
+    fn update_negative_flags(&mut self, result: u8) {
+        if result >> 7 == 1 {
+            self.status.insert(CpuFlags::NEGATIV)
+        } else {
+            self.status.remove(CpuFlags::NEGATIV)
+        }
+    }
+
     pub fn load_and_run(&mut self, program: Vec<u8>) {
         self.load(program);
         self.reset();
@@ -265,8 +284,11 @@ impl CPU {
     }
 
     pub fn load(&mut self, program: Vec<u8>) {
-        self.memory[0x8000..(0x8000 + program.len())].copy_from_slice(&program[..]);
-        self.mem_write_u16(0xFFFC, 0x8000);
+        for i in 0..(program.len() as u16) {
+            self.mem_write(0x0600 + i, program[i as usize]);
+        }
+
+        self.mem_write_u16(0xFFFC, 0x0600)
     }
 
     fn set_carry_flag(&mut self) {
