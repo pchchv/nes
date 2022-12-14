@@ -18,13 +18,13 @@
 
 #
 
-## To start the emulator, enter
+### To start the emulator, enter
 
 ```console
 cargo run
 ```
 
-## To compile
+### To compile
 
 ```console
 cargo build
