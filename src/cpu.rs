@@ -102,6 +102,7 @@ mod interrupt {
     #[derive(PartialEq, Eq)]
     pub enum InterruptType {
         NMI,
+        BRK,
     }
 
     #[derive(PartialEq, Eq)]
@@ -111,16 +112,24 @@ mod interrupt {
         pub(super) b_flag_mask: u8,
         pub(super) cpu_cycles: u8,
     }
+
     pub(super) const NMI: Interrupt = Interrupt {
         itype: InterruptType::NMI,
         vector_addr: 0xfffA,
         b_flag_mask: 0b00100000,
         cpu_cycles: 2,
     };
+
+    pub(super) const BRK: Interrupt = Interrupt {
+        itype: InterruptType::BRK,
+        vector_addr: 0xfffe,
+        b_flag_mask: 0b00110000,
+        cpu_cycles: 1,
+    };
 }
 
 impl<'a> CPU<'a> {
-    pub fn new(bus: Bus) -> Self {
+    pub fn new<'b>(bus: Bus<'b>) -> CPU<'b> {
         CPU {
             register_a: 0,
             register_x: 0,
@@ -735,6 +744,12 @@ impl<'a> CPU<'a> {
                 0xAA => self.tax(),
                 0xe8 => self.inx(),
                 0x00 => return,
+                // 0x00 => {
+                //     self.program_counter += 1;
+                //     if !self.status.contains(CpuFlags::INTERRUPT_DISABLE) {
+                //         self.interrupt(interrupt::BRK);
+                //     }
+                // }
 
                 /* CLD */
                 0xd8 => self.status.remove(CpuFlags::DECIMAL_MODE),
@@ -1134,7 +1149,7 @@ impl<'a> CPU<'a> {
                 0x04 | 0x44 | 0x64 | 0x14 | 0x34 | 0x54 | 0x74 | 0xd4 | 0xf4 | 0x0c | 0x1c
                 | 0x3c | 0x5c | 0x7c | 0xdc | 0xfc => {
                     let (addr, page_cross) = self.get_operand_address(&opcode.mode);
-                    let data = self.mem_read(addr);
+                    let _data = self.mem_read(addr);
                     if page_cross {
                         self.bus.tick(1);
                     }
@@ -1255,8 +1270,6 @@ impl<'a> CPU<'a> {
 
                     self.mem_write(mem_address, data)
                 }
-
-                _ => todo!(),
             }
 
             self.bus.tick(opcode.cycles);
@@ -1272,11 +1285,12 @@ impl<'a> CPU<'a> {
 mod test {
     use super::*;
     use crate::cartridge::test;
+    use crate::joypad::Joypad;
     use crate::ppu::NesPPU;
 
     #[test]
     fn test_0xa9_lda_immidiate_load_data() {
-        let bus = Bus::new(test::test_rom(), |ppu: &NesPPU| {});
+        let bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _Joypad: &mut Joypad| {});
         let mut cpu = CPU::new(bus);
         cpu.load_and_run(vec![0xa9, 0x05, 0x00]);
         assert_eq!(cpu.register_a, 5);
@@ -1286,7 +1300,7 @@ mod test {
 
     #[test]
     fn test_0xaa_tax_move_a_to_x() {
-        let bus = Bus::new(test::test_rom(), |ppu: &NesPPU| {});
+        let bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _Joypad: &mut Joypad| {});
         let mut cpu = CPU::new(bus);
         cpu.register_a = 10;
         cpu.load_and_run(vec![0xaa, 0x00]);
@@ -1296,7 +1310,7 @@ mod test {
 
     #[test]
     fn test_5_ops_working_together() {
-        let bus = Bus::new(test::test_rom(), |ppu: &NesPPU| {});
+        let bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _Joypad: &mut Joypad| {});
         let mut cpu = CPU::new(bus);
         cpu.load_and_run(vec![0xa9, 0xc0, 0xaa, 0xe8, 0x00]);
 
@@ -1305,7 +1319,7 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let bus = Bus::new(test::test_rom(), |ppu: &NesPPU| {});
+        let bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _Joypad: &mut Joypad| {});
         let mut cpu = CPU::new(bus);
         cpu.register_x = 0xff;
         cpu.load_and_run(vec![0xe8, 0xe8, 0x00]);
@@ -1315,7 +1329,7 @@ mod test {
 
     #[test]
     fn test_lda_from_memory() {
-        let bus = Bus::new(test::test_rom(), |ppu: &NesPPU| {});
+        let bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _Joypad: &mut Joypad| {});
         let mut cpu = CPU::new(bus);
         cpu.mem_write(0x10, 0x55);
 

@@ -16,11 +16,14 @@ pub struct NesPPU {
     pub scroll: ScrollRegister,
     pub addr: AddrRegister,
     pub vram: [u8; 2048],
+
     pub oam_addr: u8,
     pub oam_data: [u8; 256],
     pub palette_table: [u8; 32],
+
     internal_data_buf: u8,
-    scanline: u16,
+
+    pub scanline: u16,
     cycles: usize,
     pub nmi_interrupt: Option<u8>,
 }
@@ -76,7 +79,6 @@ impl NesPPU {
         let mirrored_vram = addr & 0b10111111111111; // mirror down 0x3000-0x3eff to 0x2000 - 0x2eff
         let vram_index = mirrored_vram - 0x2000; // to vram vector
         let name_table = vram_index / 0x400;
-
         match (&self.mirroring, name_table) {
             (Mirroring::VERTICAL, 2) | (Mirroring::VERTICAL, 3) => vram_index - 0x800,
             (Mirroring::HORIZONTAL, 2) => vram_index - 0x400,
@@ -93,6 +95,10 @@ impl NesPPU {
     pub fn tick(&mut self, cycles: u8) -> bool {
         self.cycles += cycles as usize;
         if self.cycles >= 341 {
+            if self.is_sprite_0_hit(self.cycles) {
+                self.status.set_sprite_zero_hit(true);
+            }
+
             self.cycles = self.cycles - 341;
             self.scanline += 1;
 
@@ -107,7 +113,6 @@ impl NesPPU {
             if self.scanline >= 262 {
                 self.scanline = 0;
                 self.nmi_interrupt = None;
-                // self.status.
                 self.status.set_sprite_zero_hit(false);
                 self.status.reset_vblank_status();
                 return true;
@@ -119,12 +124,24 @@ impl NesPPU {
     pub fn poll_nmi_interrupt(&mut self) -> Option<u8> {
         self.nmi_interrupt.take()
     }
+
+    fn is_sprite_0_hit(&self, cycle: usize) -> bool {
+        let y = self.oam_data[0] as usize;
+        let x = self.oam_data[3] as usize;
+
+        (y == self.scanline as usize) && x <= cycle && self.mask.show_sprites()
+    }
 }
 
 impl PPU for NesPPU {
     fn write_to_ctrl(&mut self, value: u8) {
         let before_nmi_status = self.ctrl.generate_vblank_nmi();
+
         self.ctrl.update(value);
+
+        if !before_nmi_status && self.ctrl.generate_vblank_nmi() && self.status.is_in_vblank() {
+            self.nmi_interrupt = Some(1);
+        }
     }
 
     fn write_to_mask(&mut self, value: u8) {

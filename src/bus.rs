@@ -74,8 +74,12 @@ impl<'a> Bus<'a> {
 
     pub fn tick(&mut self, cycles: u8) {
         self.cycles += cycles as usize;
-        let new_frame = self.ppu.tick(cycles * 3);
-        if new_frame {
+
+        let nmi_before = self.ppu.nmi_interrupt.is_some();
+        self.ppu.tick(cycles * 3);
+        let nmi_after = self.ppu.nmi_interrupt.is_some();
+
+        if !nmi_before && nmi_after {
             (self.gameloop_callback)(&self.ppu, &mut self.joypad1);
         }
     }
@@ -118,7 +122,7 @@ impl Mem for Bus<'_> {
             0x8000..=0xFFFF => self.read_prg_rom(addr),
 
             _ => {
-                println!("Ignoring mem access at {:x}", addr);
+                // println!("Ignoring mem access at {:x}", addr);
                 0
             }
         }
@@ -203,7 +207,7 @@ mod test {
 
     #[test]
     fn test_mem_read_write_to_ram() {
-        let mut bus = Bus::new(test::test_rom(), |ppu: &NesPPU, &mut Joypad| {});
+        let mut bus = Bus::new(test::test_rom(), |_ppu: &NesPPU, _JoyPad: &mut Joypad| {});
         bus.mem_write(0x01, 0x55);
         assert_eq!(bus.mem_read(0x01), 0x55);
     }
