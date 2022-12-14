@@ -14,12 +14,13 @@ use cpu::CPU;
 use ppu::NesPPU;
 use render::frame::Frame;
 use render::palette;
+use trace::trace;
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
-use trace::trace;
 // use std::time::Duration;
 use std::collections::HashMap;
 
