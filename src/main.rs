@@ -3,22 +3,26 @@ pub mod cartridge;
 pub mod cpu;
 pub mod opcodes;
 pub mod ppu;
+pub mod render;
 pub mod trace;
-
-#[macro_use]
-extern crate lazy_static;
 
 use bus::Bus;
 use cartridge::Rom;
 use cpu::Mem;
 use cpu::CPU;
+use render::frame::Frame;
+use render::palette;
+use trace::trace;
 // use rand::Rng;
-use crate::trace::trace;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::pixels::Color;
+use sdl2::pixels::PixelFormatEnum;
 use sdl2::EventPump;
 // use std::time::Duration;
+
+#[macro_use]
+extern crate lazy_static;
 
 fn color(byte: u8) -> Color {
     match byte {
@@ -93,32 +97,28 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
-        .window("Snake game", (32.0 * 10.0) as u32, (32.0 * 10.0) as u32)
+        .window("Tile viewer", (256.0 * 3.0) as u32, (240.0 * 3.0) as u32)
         .position_centered()
         .build()
         .unwrap();
 
     let mut canvas = window.into_canvas().present_vsync().build().unwrap();
     let mut event_pump = sdl_context.event_pump().unwrap();
-
-    canvas.set_scale(10.0, 10.0).unwrap();
+    canvas.set_scale(3.0, 3.0).unwrap();
 
     let creator = canvas.texture_creator();
     let mut texture = creator
-        .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
+        .create_texture_target(PixelFormatEnum::RGB24, 256, 240)
         .unwrap();
 
     // load the game
-    let bytes: Vec<u8> = std::fs::read("nestest.nes").unwrap();
+    let bytes: Vec<u8> = std::fs::read("pacman.nes").unwrap();
     let rom = Rom::new(&bytes).unwrap();
 
     let bus = Bus::new(rom);
     let mut cpu = CPU::new(bus);
-    cpu.reset();
-    cpu.program_counter = 0xC000;
 
-    // let mut screen_state = [0 as u8; 32 * 3 * 32];
-    // let mut rng = rand::thread_rng();
+    cpu.reset();
 
     // run the game cycle
     cpu.run_with_callback(move |cpu| {
