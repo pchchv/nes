@@ -10,6 +10,7 @@ use bus::Bus;
 use cartridge::Rom;
 use cpu::Mem;
 use cpu::CPU;
+use ppu::NesPPU;
 use render::frame::Frame;
 use render::palette;
 use trace::trace;
@@ -115,26 +116,30 @@ fn main() {
     let bytes: Vec<u8> = std::fs::read("pacman.nes").unwrap();
     let rom = Rom::new(&bytes).unwrap();
 
-    let bus = Bus::new(rom);
+    let mut frame = Frame::new();
+
+    // run the game cycle
+    let bus = Bus::new(rom, move |ppu: &NesPPU| {
+        render::render(ppu, &mut frame);
+        texture.update(None, &frame.data, 256 * 3).unwrap();
+
+        canvas.copy(&texture, None, None).unwrap();
+
+        canvas.present();
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => std::process::exit(0),
+                _ => { /* do nothing */ }
+            }
+        }
+    });
+
     let mut cpu = CPU::new(bus);
 
     cpu.reset();
-
-    // run the game cycle
-    cpu.run_with_callback(move |cpu| {
-        println!("{}", trace(cpu));
-        // handle_user_input(cpu, &mut event_pump);
-
-        // cpu.mem_write(0xfe, rng.gen_range(1..16));
-
-        // if read_screen_state(cpu, &mut screen_state) {
-        //     texture.update(None, &screen_state, 32 * 3).unwrap();
-
-        //     canvas.copy(&texture, None, None).unwrap();
-
-        //     canvas.present();
-        // }
-
-        // ::std::thread::sleep(Duration::new(0, 70_000))
-    });
+    cpu.run();
 }
