@@ -8,7 +8,7 @@
 
 #
 
-## The simplified architecture of hardware-software interaction looks like this:
+## The simplified architecture of hardware-software interaction looks like this
 
 <div align="center">
 
@@ -18,30 +18,29 @@
 
 #
 
-## To start the emulator, enter:
+## To start the emulator, enter
 
 ```console
 cargo run
 ```
 
-## To compile:
+## To compile
 
 ```console
 cargo build
 ```
+
 #
 
-### Dependencies:
+### Dependencies
 
 * Rust 1.65.0
 * Cargo 1.65.0
-* Crates(in [Cargo.toml](Cargo.toml)):
-```toml
-lazy_static
-bitflags
-sdl2
-rand
-```
+* Crates (in [Cargo.toml](Cargo.toml))
+  * lazy_static
+  * bitflags
+  * sdl2
+  * rand
 
 #
 
